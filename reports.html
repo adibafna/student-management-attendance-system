@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Student Attendance Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    @media print {
+      .navbar, .filter-controls, .btn, .app-footer {
+        display: none !important;
+      }
+      body {
+        background: white;
+        color: black;
+      }
+      .card {
+        border: none;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">
+      <span>📋 SAMS</span>
+      <span class="nav-brand-badge">Academic STQA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="students.html" class="nav-link">Students</a></li>
+      <li><a href="attendance.html" class="nav-link">Attendance</a></li>
+      <li><a href="reports.html" class="nav-link active">Reports</a></li>
+      <li><a href="tests.html" class="nav-link">Testing Suite</a></li>
+    </ul>
+    <div class="nav-user">
+      <span id="navUserBadge">admin (Teacher)</span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Cumulative Attendance Reports</h1>
+        <p class="page-subtitle">Academic eligibility calculations, percentage aggregation, and official student records.</p>
+      </div>
+      <div>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Print / Save Report</button>
+      </div>
+    </header>
+
+    <!-- Filters and Search Card -->
+    <section class="card filter-controls">
+      <div class="card-header">
+        <h2 class="card-title">Search & Analytical Filters</h2>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="searchInput" class="form-label">Search Student</label>
+            <input 
+              type="text" 
+              id="searchInput" 
+              class="form-control" 
+              placeholder="Search by name or roll number..." 
+              oninput="renderReportTable()"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="filterEligibility" class="form-label">Eligibility Filter</label>
+            <select id="filterEligibility" class="form-control" onchange="renderReportTable()">
+              <option value="ALL">All Attendance Statuses</option>
+              <option value="Eligible">Eligible (&ge; 75%)</option>
+              <option value="Short Attendance">Short Attendance (&lt; 75%)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filterDivision" class="form-label">Division Filter</label>
+            <select id="filterDivision" class="form-control" onchange="renderReportTable()">
+              <option value="ALL">All Divisions</option>
+              <option value="A">Division A</option>
+              <option value="B">Division B</option>
+              <option value="C">Division C</option>
+              <option value="D">Division D</option>
+            </select>
+          </div>
+
+          <div>
+            <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="resetFilters()">
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Report Table Card -->
+    <section class="card">
+      <div class="card-header">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <h2 class="card-title">Student Attendance Statement</h2>
+          <span class="badge badge-info" id="reportCountBadge">Showing 0 Records</span>
+          <span class="badge badge-success" id="reportEligibleBadge">0 Eligible</span>
+          <span class="badge badge-danger" id="reportShortBadge">0 Short Attendance</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table" id="reportTable">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Roll No</th>
+                <th style="width: 25%;">Student Name</th>
+                <th style="width: 10%;">Division</th>
+                <th style="width: 12%; text-align: center;">Total Classes</th>
+                <th style="width: 10%; text-align: center;">Present</th>
+                <th style="width: 10%; text-align: center;">Absent</th>
+                <th style="width: 13%; text-align: center;">Attendance %</th>
+                <th style="width: 10%; text-align: center;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="reportTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    Student Attendance Management System &bull; STQA PBL Project &bull; Bharati Vidyapeeth Deemed to be University
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/students.js"></script>
+  <script src="js/attendance.js"></script>
+  <script src="js/reports.js"></script>
+  <script>
+    initAuthProtection(true);
+
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterEligibility').value = 'ALL';
+      document.getElementById('filterDivision').value = 'ALL';
+      renderReportTable();
+    }
+
+    function renderReportTable() {
+      const students = getStudents();
+      const records = getAllAttendanceRecords();
+      const allRows = generateAllReports(students, records);
+
+      const q = document.getElementById('searchInput').value;
+      const elig = document.getElementById('filterEligibility').value;
+      const div = document.getElementById('filterDivision').value;
+
+      const filtered = filterReportRows(allRows, q, elig, div);
+
+      // Summary counts
+      const totalEligible = filtered.filter(r => r.isEligible).length;
+      const totalShort = filtered.filter(r => !r.isEligible).length;
+
+      document.getElementById('reportCountBadge').textContent = `Showing ${filtered.length} of ${allRows.length} Records`;
+      document.getElementById('reportEligibleBadge').textContent = `${totalEligible} Eligible`;
+      document.getElementById('reportShortBadge').textContent = `${totalShort} Short Attendance`;
+
+      const tbody = document.getElementById('reportTableBody');
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b;">No matching records found.</td></tr>';
+        return;
+      }
+
+      filtered.forEach(row => {
+        const tr = document.createElement('tr');
+        const badgeClass = row.isEligible ? 'badge-success' : 'badge-danger';
+        tr.innerHTML = `
+          <td><strong>${row.rollNo}</strong></td>
+          <td>${row.name}</td>
+          <td><span class="badge badge-info">${row.division}</span></td>
+          <td style="text-align: center;">${row.total}</td>
+          <td style="text-align: center; color: #10b981; font-weight: 600;">${row.present}</td>
+          <td style="text-align: center; color: #ef4444; font-weight: 600;">${row.absent}</td>
+          <td style="text-align: center; font-weight: 700; font-size: 0.95rem;">${row.percentageStr}</td>
+          <td style="text-align: center;"><span class="badge ${badgeClass}">${row.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', renderReportTable);
+  </script>
+</body>
+</html>

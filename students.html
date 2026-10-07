@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Management - Student Attendance Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">
+      <span>📋 SAMS</span>
+      <span class="nav-brand-badge">Academic STQA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="students.html" class="nav-link active">Students</a></li>
+      <li><a href="attendance.html" class="nav-link">Attendance</a></li>
+      <li><a href="reports.html" class="nav-link">Reports</a></li>
+      <li><a href="tests.html" class="nav-link">Testing Suite</a></li>
+    </ul>
+    <div class="nav-user">
+      <span id="navUserBadge">admin (Teacher)</span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Student Management</h1>
+        <p class="page-subtitle">Register new students, maintain roster uniqueness, and manage academic profiles.</p>
+      </div>
+      <div>
+        <span class="badge badge-info" id="studentCountBadge">Total: 0 Students</span>
+      </div>
+    </header>
+
+    <!-- Alert / Toast -->
+    <div id="studentAlert" class="alert"></div>
+
+    <!-- Add Student Form Card -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Enroll New Student</h2>
+      </div>
+      <div class="card-body">
+        <form id="addStudentForm" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="rollNo" class="form-label">Roll Number *</label>
+              <input 
+                type="text" 
+                id="rollNo" 
+                class="form-control" 
+                placeholder="e.g., 107 or CS107" 
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="studentName" class="form-label">Full Name *</label>
+              <input 
+                type="text" 
+                id="studentName" 
+                class="form-control" 
+                placeholder="e.g., Aarav Mehta" 
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="division" class="form-label">Division *</label>
+              <select id="division" class="form-control" required>
+                <option value="">Select Division</option>
+                <option value="A">Division A</option>
+                <option value="B">Division B</option>
+                <option value="C">Division C</option>
+                <option value="D">Division D</option>
+              </select>
+            </div>
+
+            <div>
+              <button type="submit" id="btnAddStudent" class="btn btn-primary" style="width: 100%;">
+                + Add Student
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Students Table Card -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Enrolled Students Roster</h2>
+        <button class="btn btn-secondary btn-sm" onclick="renderTable()">Refresh List</button>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table" id="studentsTable">
+            <thead>
+              <tr>
+                <th style="width: 15%;">Roll Number</th>
+                <th style="width: 45%;">Student Name</th>
+                <th style="width: 20%;">Division</th>
+                <th style="width: 20%; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    Student Attendance Management System &bull; STQA PBL Project &bull; Bharati Vidyapeeth Deemed to be University
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/students.js"></script>
+  <script>
+    initAuthProtection(true);
+
+    const alertEl = document.getElementById('studentAlert');
+    const form = document.getElementById('addStudentForm');
+
+    function showAlert(msg, isSuccess = false) {
+      alertEl.style.display = 'block';
+      alertEl.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+      alertEl.textContent = msg;
+      setTimeout(() => {
+        alertEl.style.display = 'none';
+      }, 4000);
+    }
+
+    function renderTable() {
+      const students = getStudents();
+      const tbody = document.getElementById('studentsTableBody');
+      const badge = document.getElementById('studentCountBadge');
+      badge.textContent = `Total: ${students.length} Students`;
+      tbody.innerHTML = '';
+
+      if (students.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b;">No students registered. Add a student above.</td></tr>';
+        return;
+      }
+
+      students.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${s.rollNo}</strong></td>
+          <td>${s.name}</td>
+          <td><span class="badge badge-info">Div ${s.division}</span></td>
+          <td style="text-align: center;">
+            <button class="btn btn-danger btn-sm" onclick="handleDelete('${s.rollNo}', '${s.name}')">
+              Delete
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function handleDelete(rollNo, name) {
+      if (confirm(`Are you sure you want to delete student ${name} (Roll No: ${rollNo})?\nThis will also cascade delete their attendance history.`)) {
+        const res = deleteStudent(rollNo);
+        if (res.success) {
+          showAlert(res.message, true);
+          renderTable();
+        } else {
+          showAlert(res.message, false);
+        }
+      }
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const rollNo = document.getElementById('rollNo').value;
+      const name = document.getElementById('studentName').value;
+      const division = document.getElementById('division').value;
+
+      const res = addStudent({ rollNo, name, division });
+
+      if (res.success) {
+        showAlert(res.message, true);
+        form.reset();
+        renderTable();
+      } else {
+        showAlert(res.message, false);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', renderTable);
+  </script>
+</body>
+</html>

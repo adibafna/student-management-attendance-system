@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STQA Automated Test Suite - Student Attendance System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .code-snippet {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      background-color: #f1f5f9;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">
+      <span>📋 SAMS</span>
+      <span class="nav-brand-badge">Academic STQA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="students.html" class="nav-link">Students</a></li>
+      <li><a href="attendance.html" class="nav-link">Attendance</a></li>
+      <li><a href="reports.html" class="nav-link">Reports</a></li>
+      <li><a href="tests.html" class="nav-link active">Testing Suite</a></li>
+    </ul>
+    <div class="nav-user">
+      <span id="navUserBadge">admin (Teacher)</span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">STQA Automated Test Suite</h1>
+        <p class="page-subtitle">Interactive Quality Assurance Harness for Unit, Integration, Regression, and System Verification.</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="runAllSuites()">🚀 Run All 31 Tests</button>
+        <button class="btn btn-secondary btn-sm" onclick="runUnitOnly()">Unit Tests</button>
+        <button class="btn btn-secondary btn-sm" onclick="runIntegrationOnly()">Integration</button>
+        <button class="btn btn-secondary btn-sm" onclick="runRegressionOnly()">Regression</button>
+        <button class="btn btn-secondary btn-sm" onclick="runSystemOnly()">System E2E</button>
+      </div>
+    </header>
+
+    <!-- Test Metrics Dashboard -->
+    <section class="test-summary-grid">
+      <div class="test-metric">
+        <div class="test-metric-num" id="metricTotal">0</div>
+        <div class="test-metric-label">Total Test Cases</div>
+      </div>
+      <div class="test-metric">
+        <div class="test-metric-num" style="color: var(--success);" id="metricPassed">0</div>
+        <div class="test-metric-label">Tests Passed</div>
+      </div>
+      <div class="test-metric">
+        <div class="test-metric-num" style="color: var(--danger);" id="metricFailed">0</div>
+        <div class="test-metric-label">Tests Failed</div>
+      </div>
+      <div class="test-metric">
+        <div class="test-metric-num" style="color: var(--primary-light);" id="metricPassRate">0%</div>
+        <div class="test-metric-label">Success Rate</div>
+      </div>
+      <div class="test-metric">
+        <div class="test-metric-num" style="color: var(--secondary);" id="metricLatency">0.0 ms</div>
+        <div class="test-metric-label">Execution Time</div>
+      </div>
+    </section>
+
+    <!-- Test Log Card -->
+    <section class="card">
+      <div class="card-header">
+        <div class="test-filter-tabs" style="margin-bottom: 0;">
+          <button class="tab-btn active" data-tab="all" onclick="filterTab('all', this)">All Tests</button>
+          <button class="tab-btn" data-tab="unit" onclick="filterTab('unit', this)">Unit Tests (15)</button>
+          <button class="tab-btn" data-tab="integration" onclick="filterTab('integration', this)">Integration Tests (6)</button>
+          <button class="tab-btn" data-tab="regression" onclick="filterTab('regression', this)">Regression Tests (5)</button>
+          <button class="tab-btn" data-tab="system" onclick="filterTab('system', this)">System Tests (5)</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table test-log-table" id="testTable">
+            <thead>
+              <tr>
+                <th style="width: 8%;">Test ID</th>
+                <th style="width: 14%;">Module</th>
+                <th style="width: 22%;">Description</th>
+                <th style="width: 18%;">Input</th>
+                <th style="width: 18%;">Expected Result</th>
+                <th style="width: 12%;">Actual Result</th>
+                <th style="width: 8%; text-align: center;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="testTableBody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    Student Attendance Management System &bull; STQA PBL Project &bull; Bharati Vidyapeeth Deemed to be University
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/students.js"></script>
+  <script src="js/attendance.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/tests.js"></script>
+  <script>
+    initAuthProtection(true);
+
+    let activeFilter = 'all';
+
+    function runAllSuites() {
+      const start = performance.now();
+      const output = runAllTests();
+      const elapsed = (performance.now() - start).toFixed(2);
+      updateMetrics(output.summary, elapsed);
+      renderTestRows();
+    }
+
+    function runUnitOnly() {
+      const start = performance.now();
+      executeUnitTests();
+      const elapsed = (performance.now() - start).toFixed(2);
+      const total = testResults.unit.length;
+      const passed = testResults.unit.filter(t => t.status === 'PASS').length;
+      updateMetrics({ total, passed, failed: total - passed, passRate: `${((passed/total)*100).toFixed(1)}%` }, elapsed);
+      filterTab('unit', document.querySelector('[data-tab="unit"]'));
+    }
+
+    function runIntegrationOnly() {
+      const start = performance.now();
+      executeIntegrationTests();
+      const elapsed = (performance.now() - start).toFixed(2);
+      const total = testResults.integration.length;
+      const passed = testResults.integration.filter(t => t.status === 'PASS').length;
+      updateMetrics({ total, passed, failed: total - passed, passRate: `${((passed/total)*100).toFixed(1)}%` }, elapsed);
+      filterTab('integration', document.querySelector('[data-tab="integration"]'));
+    }
+
+    function runRegressionOnly() {
+      const start = performance.now();
+      executeRegressionTests();
+      const elapsed = (performance.now() - start).toFixed(2);
+      const total = testResults.regression.length;
+      const passed = testResults.regression.filter(t => t.status === 'PASS').length;
+      updateMetrics({ total, passed, failed: total - passed, passRate: `${((passed/total)*100).toFixed(1)}%` }, elapsed);
+      filterTab('regression', document.querySelector('[data-tab="regression"]'));
+    }
+
+    function runSystemOnly() {
+      const start = performance.now();
+      executeSystemTests();
+      const elapsed = (performance.now() - start).toFixed(2);
+      const total = testResults.system.length;
+      const passed = testResults.system.filter(t => t.status === 'PASS').length;
+      updateMetrics({ total, passed, failed: total - passed, passRate: `${((passed/total)*100).toFixed(1)}%` }, elapsed);
+      filterTab('system', document.querySelector('[data-tab="system"]'));
+    }
+
+    function updateMetrics(summary, latency) {
+      document.getElementById('metricTotal').textContent = summary.total;
+      document.getElementById('metricPassed').textContent = summary.passed;
+      document.getElementById('metricFailed').textContent = summary.failed;
+      document.getElementById('metricPassRate').textContent = summary.passRate;
+      document.getElementById('metricLatency').textContent = `${latency} ms`;
+    }
+
+    function filterTab(tabName, btn) {
+      activeFilter = tabName;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderTestRows();
+    }
+
+    function renderTestRows() {
+      let dataset = [];
+      if (activeFilter === 'all') {
+        dataset = [
+          ...testResults.unit,
+          ...testResults.integration,
+          ...testResults.regression,
+          ...testResults.system
+        ];
+      } else {
+        dataset = testResults[activeFilter] || [];
+      }
+
+      const tbody = document.getElementById('testTableBody');
+      tbody.innerHTML = '';
+
+      if (dataset.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">No test cases executed yet. Click a run button above.</td></tr>';
+        return;
+      }
+
+      dataset.forEach(t => {
+        const tr = document.createElement('tr');
+        const badgeClass = t.status === 'PASS' ? 'badge-success' : 'badge-danger';
+        tr.innerHTML = `
+          <td><strong>${t.id}</strong></td>
+          <td><span class="badge badge-info">${t.module}</span></td>
+          <td>${t.description}</td>
+          <td><div class="code-snippet">${escapeHtml(t.input)}</div></td>
+          <td style="color: #475569; font-size: 0.8rem;">${escapeHtml(t.expected)}</td>
+          <td style="color: #1e293b; font-size: 0.8rem;">${escapeHtml(t.actual)}</td>
+          <td style="text-align: center;"><span class="badge ${badgeClass}">${t.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Auto-execute on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      runAllSuites();
+    });
+  </script>
+</body>
+</html>

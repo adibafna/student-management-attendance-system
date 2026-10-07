@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance - Student Attendance Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">
+      <span>📋 SAMS</span>
+      <span class="nav-brand-badge">Academic STQA</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+      <li><a href="students.html" class="nav-link">Students</a></li>
+      <li><a href="attendance.html" class="nav-link active">Attendance</a></li>
+      <li><a href="reports.html" class="nav-link">Reports</a></li>
+      <li><a href="tests.html" class="nav-link">Testing Suite</a></li>
+    </ul>
+    <div class="nav-user">
+      <span id="navUserBadge">admin (Teacher)</span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Daily Attendance Tracking</h1>
+        <p class="page-subtitle">Select date, record classroom presence, and update historical attendance logs.</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span class="badge badge-info" id="sessionStatusBadge">New Session</span>
+      </div>
+    </header>
+
+    <!-- Alert / Toast -->
+    <div id="attendanceAlert" class="alert"></div>
+
+    <!-- Attendance Date & Controls Card -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Session Configuration</h2>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <label for="attendanceDate" class="form-label" style="margin: 0;">Attendance Date:</label>
+            <input 
+              type="date" 
+              id="attendanceDate" 
+              class="form-control" 
+              style="width: auto;"
+            >
+            <button class="btn btn-secondary btn-sm" id="btnLoadDate" onclick="loadAttendanceForSelectedDate()">
+              Load Date
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="markAll('Present')">
+              ✓ Mark All Present
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="markAll('Absent')">
+              ✗ Mark All Absent
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Student Attendance Marking Sheet -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Attendance Sheet</h2>
+        <span style="font-size: 0.85rem; color: #64748b;" id="sheetSummaryText">Loading students...</span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table" id="attendanceTable">
+            <thead>
+              <tr>
+                <th style="width: 15%;">Roll Number</th>
+                <th style="width: 35%;">Student Name</th>
+                <th style="width: 15%;">Division</th>
+                <th style="width: 35%; text-align: center;">Mark Attendance</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+          <button type="button" id="btnSaveAttendance" class="btn btn-success" style="padding: 0.75rem 2rem; font-size: 1rem;" onclick="handleSaveAttendance()">
+            💾 Save Attendance Record
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- History of Recorded Dates -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recorded Dates in Local Database</h2>
+      </div>
+      <div class="card-body">
+        <div id="recordedDatesChips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <!-- Dynamically populated chips -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    Student Attendance Management System &bull; STQA PBL Project &bull; Bharati Vidyapeeth Deemed to be University
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/students.js"></script>
+  <script src="js/attendance.js"></script>
+  <script>
+    initAuthProtection(true);
+
+    const alertEl = document.getElementById('attendanceAlert');
+    const dateInput = document.getElementById('attendanceDate');
+
+    function showAlert(msg, isSuccess = false) {
+      alertEl.style.display = 'block';
+      alertEl.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+      alertEl.textContent = msg;
+      setTimeout(() => {
+        alertEl.style.display = 'none';
+      }, 4000);
+    }
+
+    // Set default date to today
+    function setDefaultDate() {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+    }
+
+    function renderDatesChips() {
+      const dates = getRecordedDates();
+      const container = document.getElementById('recordedDatesChips');
+      container.innerHTML = '';
+
+      if (dates.length === 0) {
+        container.innerHTML = '<span style="color: #64748b; font-size: 0.85rem;">No historical dates saved yet.</span>';
+        return;
+      }
+
+      dates.forEach(d => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary btn-sm';
+        btn.textContent = `📅 ${d}`;
+        btn.onclick = () => {
+          dateInput.value = d;
+          loadAttendanceForSelectedDate();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function loadAttendanceForSelectedDate() {
+      const selectedDate = dateInput.value;
+      if (!isValidDateString(selectedDate)) {
+        showAlert('Please choose a valid date format (YYYY-MM-DD).', false);
+        return;
+      }
+
+      const existingRecord = getAttendanceForDate(selectedDate);
+      const badge = document.getElementById('sessionStatusBadge');
+      if (existingRecord) {
+        badge.className = 'badge badge-warning';
+        badge.textContent = `Editing Record (${selectedDate})`;
+      } else {
+        badge.className = 'badge badge-info';
+        badge.textContent = `New Record (${selectedDate})`;
+      }
+
+      const students = getStudents();
+      const tbody = document.getElementById('attendanceTableBody');
+      const summaryText = document.getElementById('sheetSummaryText');
+      tbody.innerHTML = '';
+
+      summaryText.textContent = `Total: ${students.length} students enrolled`;
+
+      if (students.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color:#64748b;">No students found. Add students first in the Student Management module.</td></tr>';
+        return;
+      }
+
+      students.forEach(s => {
+        const currentStatus = existingRecord && existingRecord[s.rollNo] ? existingRecord[s.rollNo] : 'Present';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${s.rollNo}</strong></td>
+          <td>${s.name}</td>
+          <td><span class="badge badge-info">Div ${s.division}</span></td>
+          <td style="text-align: center;">
+            <div class="attendance-toggle">
+              <label>
+                <input type="radio" name="att_${s.rollNo}" value="Present" ${currentStatus === 'Present' ? 'checked' : ''}>
+                <span>Present</span>
+              </label>
+              <label>
+                <input type="radio" name="att_${s.rollNo}" value="Absent" ${currentStatus === 'Absent' ? 'checked' : ''}>
+                <span>Absent</span>
+              </label>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function markAll(status) {
+      const radios = document.querySelectorAll(`input[type="radio"][value="${status}"]`);
+      radios.forEach(r => r.checked = true);
+    }
+
+    function handleSaveAttendance() {
+      const selectedDate = dateInput.value;
+      if (!isValidDateString(selectedDate)) {
+        showAlert('Please choose a valid date before saving.', false);
+        return;
+      }
+
+      const students = getStudents();
+      if (students.length === 0) {
+        showAlert('No students available to mark attendance.', false);
+        return;
+      }
+
+      const statusMap = {};
+      students.forEach(s => {
+        const checked = document.querySelector(`input[name="att_${s.rollNo}"]:checked`);
+        statusMap[s.rollNo] = checked ? checked.value : 'Present';
+      });
+
+      const res = saveAttendanceForDate(selectedDate, statusMap);
+      if (res.success) {
+        showAlert(res.message, true);
+        renderDatesChips();
+        loadAttendanceForSelectedDate();
+      } else {
+        showAlert(res.message, false);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setDefaultDate();
+      loadAttendanceForSelectedDate();
+      renderDatesChips();
+    });
+  </script>
+</body>
+</html>

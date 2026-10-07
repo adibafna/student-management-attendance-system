@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Student Attendance Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body">
+
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">📋</div>
+      <h1 class="login-title">Student Attendance System</h1>
+      <p class="login-subtitle">STQA Project - Teacher Authentication Portal</p>
+    </div>
+
+    <!-- Demo Credentials Notice -->
+    <div class="demo-credentials-box">
+      <strong>🔑 Demo Credentials:</strong>
+      <div>Username: <code>admin</code></div>
+      <div>Password: <code>admin123</code></div>
+    </div>
+
+    <!-- Alert / Validation Message Box -->
+    <div id="loginAlert" class="alert"></div>
+
+    <!-- Login Form -->
+    <form id="loginForm" novalidate>
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="username" class="form-label">Username</label>
+        <input 
+          type="text" 
+          id="username" 
+          class="form-control" 
+          placeholder="Enter username" 
+          autocomplete="username"
+          required
+        >
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label for="password" class="form-label">Password</label>
+        <input 
+          type="password" 
+          id="password" 
+          class="form-control" 
+          placeholder="Enter password" 
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <button type="submit" id="btnLogin" class="btn btn-primary" style="width: 100%;">
+        Sign In to Portal
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.75rem; color: #64748b;">
+      Bharati Vidyapeeth (Deemed to be University) &bull; Department of CSE
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // Enforce that already logged in user goes straight to dashboard
+    initAuthProtection(false);
+
+    const loginForm = document.getElementById('loginForm');
+    const loginAlert = document.getElementById('loginAlert');
+
+    function showAlert(msg, isSuccess = false) {
+      loginAlert.style.display = 'block';
+      loginAlert.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+      loginAlert.textContent = msg;
+    }
+
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const userVal = document.getElementById('username').value;
+      const passVal = document.getElementById('password').value;
+
+      const result = validateLogin(userVal, passVal);
+
+      if (result.success) {
+        showAlert(result.message, true);
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 600);
+      } else {
+        showAlert(result.message, false);
+      }
+    });
+  </script>
+</body>
+</html>
